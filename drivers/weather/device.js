@@ -11,17 +11,24 @@ class WeatherDevice extends homey_1.default.Device {
     constructor() {
         super(...arguments);
         this.randomNumber = 15;
+        this.latestWeatherReport = [];
+        this.latestAirQualityReport = [];
+        this.isCurrentWeather = false;
     }
     async onInit() {
-        this.randomNumber = Math.floor(Math.random() * (15 - 5 + 1) + 5);
+        this.randomNumber = Math.floor(Math.random() * (15 - 2 + 1) + 2);
+        this.isCurrentWeather = this.getStore().forecast == 0;
         await this.update(true);
-        this.updateInterval = this.homey.setInterval(() => this.update().catch(this.error), 1000 * 60);
+        if (this.isCurrentWeather)
+            this.updateInterval = this.homey.setInterval(() => this.update(true).catch(this.error), 1000 * 60 * 15);
+        else
+            this.updateInterval = this.homey.setInterval(() => this.update().catch(this.error), 1000 * 60);
         this.log('WeatherDevice has been initialized');
     }
     async update(ignore = false) {
         //Interval runs at 1 minute. But we want weather pooling to be not every minute and
         //still have weather pooling at the start of the hour. So we have to generate a random number to even out the pooling
-        //so the API Servers are not overloaded and check that random number (5-15) to the current minutes of the hour.
+        //so the API Servers are not overloaded and check that random number (2-15) to the current minutes of the hour.
         if (new Date().getMinutes() !== this.randomNumber && !ignore)
             return;
         let store = this.getStore();
@@ -31,6 +38,7 @@ class WeatherDevice extends homey_1.default.Device {
             .toLocaleString("en-US", { timeZone: store.timezone }));
         //Getting the weather data from open-meteo
         let weather = await this.getCurrentWeather(store.location, store.timezone, store.hourlyWeatherVariables.filter((e) => { var _a, _b; return (_b = ((_a = this.getConfig(e)) === null || _a === void 0 ? void 0 : _a.apiVar) === true) !== null && _b !== void 0 ? _b : false; }), store.dailyWeatherVariables, date.toISOString().split('T')[0]);
+        this.latestWeatherReport = weather;
         //Setting the weather variables
         for (let v of store.dailyWeatherVariables) {
             await this.updateWeather(v, weather.daily);
@@ -42,15 +50,17 @@ class WeatherDevice extends homey_1.default.Device {
         //Setting Date capability to current day/time
         if (this.hasCapability("date")) {
             let hours = ("0" + date.getHours()).slice(-2) + ":" + ("0" + date.getMinutes()).slice(-2);
-            let day = ("0" + date.getDate()).slice(-2) + "." + ("0" + date.getMonth()).slice(-2) + "." + date.getFullYear();
+            let day = ("0" + date.getDate()).slice(-2) + "." + ("0" + (date.getMonth() + 1)).slice(-2) + "." + date.getFullYear();
             await this.setCapabilityValue("date", `${hours} ${day}`);
         }
         if (store.hourlyAirQualityValues) {
             let airQuality = await this.getAirQuality(store.location, store.hourlyAirQualityValues, date.toISOString().split('T')[0]);
+            this.latestAirQualityReport = airQuality;
             for (let v of store.hourlyAirQualityValues) {
                 await this.updateWeather(v, airQuality.hourly);
             }
         }
+        await this.homey.flow.getDeviceTriggerCard("weather-has-been-updated").trigger(this);
         this.log(`Updating weather for location: ${store.location.name}`);
     }
     async updateWeather(weatherValue, weatherArray, index = 0) {

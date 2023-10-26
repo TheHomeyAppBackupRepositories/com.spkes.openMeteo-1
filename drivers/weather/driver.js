@@ -31,6 +31,9 @@ const crypto = __importStar(require("crypto"));
 const dailyWeatherVariables_json_1 = __importDefault(require("../../assets/json/dailyWeatherVariables.json"));
 const hourlyWeatherVariables_json_1 = __importDefault(require("../../assets/json/hourlyWeatherVariables.json"));
 const hourlyAirQualityVariables_json_1 = __importDefault(require("../../assets/json/hourlyAirQualityVariables.json"));
+const quickchart_js_1 = __importDefault(require("quickchart-js"));
+const path_1 = __importDefault(require("path"));
+const utils_1 = __importDefault(require("../../lib/utils"));
 class WeatherDriver extends homey_1.default.Driver {
     constructor() {
         super(...arguments);
@@ -44,6 +47,102 @@ class WeatherDriver extends homey_1.default.Driver {
      */
     async onInit() {
         this.log('WeatherDriver has been initialized');
+        this._createChartFlow();
+    }
+    _createChartFlow() {
+        this.homey.flow
+            .getActionCard("create-chart")
+            .registerArgumentAutocompleteListener('weatherVariable', (query, args) => {
+            let device = args.device;
+            let results = [];
+            device.getStore().hourlyWeatherVariables.forEach((s) => {
+                var _a;
+                let config = device.getConfig(s);
+                results.push({
+                    name: this.homey.__((_a = config === null || config === void 0 ? void 0 : config.i18n) !== null && _a !== void 0 ? _a : s),
+                    description: this.homey.__("hourlyWeatherVariables"),
+                    id: s,
+                    type: "weather",
+                    config: config
+                });
+            });
+            device.getStore().hourlyAirQualityValues.forEach((s) => {
+                var _a;
+                let config = device.getConfig(s);
+                results.push({
+                    name: this.homey.__((_a = config === null || config === void 0 ? void 0 : config.i18n) !== null && _a !== void 0 ? _a : s),
+                    description: this.homey.__("hourlyAirQualityVariables"),
+                    id: s,
+                    type: "airQuality",
+                    config: config
+                });
+            });
+            return results.filter((result) => {
+                return result.name.toLowerCase().includes(query.toLowerCase());
+            });
+        })
+            .registerRunListener(async (args) => {
+            var _a;
+            let device = args.device;
+            let labels = [];
+            let data = [];
+            let unit = "";
+            if (args.weatherVariable.type == "weather") {
+                data = device.latestWeatherReport.hourly[args.weatherVariable.id];
+                unit = device.latestWeatherReport.hourly_units[args.weatherVariable.id];
+            }
+            if (args.weatherVariable.type == "airQuality") {
+                data = device.latestAirQualityReport.hourly[args.weatherVariable.id];
+                unit = device.latestAirQualityReport.hourly_units[args.weatherVariable.id];
+            }
+            for (let i = 0; i < data.length; i++) {
+                labels.push(i + "");
+            }
+            let myChart = new quickchart_js_1.default();
+            console.log(data, labels);
+            myChart.setConfig({
+                type: (_a = args.type) !== null && _a !== void 0 ? _a : "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: args.weatherVariable.name,
+                            data: data,
+                            borderColor: quickchart_js_1.default.getGradientFillHelper('vertical', [
+                                args.lineColor, utils_1.default.hexToRGB(args.lineColor, .5)
+                            ]),
+                            backgroundColor: quickchart_js_1.default.getGradientFillHelper('vertical', [
+                                utils_1.default.hexToRGB(args.lineColor, .4), utils_1.default.hexToRGB(args.lineColor, .1)
+                            ]),
+                            ...utils_1.default.datasetVariables
+                        }
+                    ],
+                },
+                options: {
+                    scales: {
+                        ...utils_1.default.scalesXVariables,
+                        yAxes: [{
+                                scaleLabel: {
+                                    labelString: `${args.weatherVariable.name} (${unit})`,
+                                    display: true,
+                                },
+                                ...utils_1.default.scalesYVariables
+                            }]
+                    },
+                    ...utils_1.default.optionVariables,
+                }
+            })
+                .setWidth(500)
+                .setHeight(300)
+                .setBackgroundColor(args.backgroundColor)
+                .setDevicePixelRatio(3.0);
+            await myChart.toFile(path_1.default.join("/userdata/", "chart.png"));
+            let image = await this.homey.images.createImage();
+            image.setPath(path_1.default.join("/userdata/", "chart.png"));
+            return {
+                chart: image,
+            };
+        });
     }
     /**
      * This method is called when a repair session starts.

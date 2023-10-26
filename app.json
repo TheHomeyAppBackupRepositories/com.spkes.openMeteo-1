@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.spkes.openMeteo",
-  "version": "1.3.3",
+  "version": "1.4.6",
   "compatibility": ">=8.1.0",
   "sdk": 3,
   "platforms": [
@@ -93,6 +93,132 @@
   "source": "https://github.com/spkesDE/com.spkes.openMeteo",
   "support": "https://github.com/spkesDE",
   "homeyCommunityTopicId": 76977,
+  "flow": {
+    "triggers": [
+      {
+        "title": {
+          "en": "Weather has been updated",
+          "de": "Wetter wurde aktualisiert"
+        },
+        "titleFormatted": {
+          "en": "Weather has been updated",
+          "de": "Wetter wurde aktualisiert"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=weather"
+          }
+        ],
+        "id": "weather-has-been-updated"
+      }
+    ],
+    "actions": [
+      {
+        "title": {
+          "en": "Create chart for Hourly Weather Variable",
+          "de": "Erstelle ein Graph für die Stündlichen Wetter Werte"
+        },
+        "titleFormatted": {
+          "en": "Create chart for Hourly Weather Variable [[weatherVariable]] ([[type]] [[lineColor]] [[backgroundColor]])",
+          "de": "Erstelle ein Graph für die Stündlichen Wetter Werte [[weatherVariable]] ([[type]] [[lineColor]] [[backgroundColor]])"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=weather"
+          },
+          {
+            "type": "autocomplete",
+            "required": false,
+            "name": "weatherVariable",
+            "placeholder": {
+              "en": "Weather Variable",
+              "de": "Wetter Werte"
+            }
+          },
+          {
+            "name": "type",
+            "type": "dropdown",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            },
+            "values": [
+              {
+                "id": "line",
+                "title": {
+                  "en": "Line Chart",
+                  "de": "Linen-graph"
+                }
+              },
+              {
+                "id": "bar",
+                "title": {
+                  "en": "Bar Chart",
+                  "de": "Bar-graph"
+                }
+              }
+            ]
+          },
+          {
+            "type": "color",
+            "name": "lineColor",
+            "required": false,
+            "title": {
+              "en": "Color",
+              "de": "Farbe"
+            }
+          },
+          {
+            "name": "backgroundColor",
+            "type": "dropdown",
+            "required": false,
+            "title": {
+              "en": "Background Color",
+              "dn": "Hintergrundfarbe"
+            },
+            "values": [
+              {
+                "id": "#ffffff",
+                "title": {
+                  "en": "Light Mode",
+                  "de": "Heller Modus"
+                }
+              },
+              {
+                "id": "#222329",
+                "title": {
+                  "en": "Dark Mode",
+                  "de": "Dunkler Modus"
+                }
+              },
+              {
+                "id": "transparent",
+                "title": {
+                  "en": "Transparent Mode",
+                  "de": "Transparenter Modus"
+                }
+              }
+            ]
+          }
+        ],
+        "tokens": [
+          {
+            "name": "chart",
+            "type": "image",
+            "title": {
+              "en": "Chart",
+              "de": "Graph"
+            }
+          }
+        ],
+        "id": "create-chart"
+      }
+    ]
+  },
   "drivers": [
     {
       "name": {
@@ -1138,6 +1264,22 @@
       },
       "icon": "/assets/icons/measure_visibility.svg"
     },
+    "measure_weathercode": {
+      "type": "number",
+      "label": {
+        "en": "Current Weather Code (WMO)",
+        "de": "Aktueller Wettercode (WMO)"
+      },
+      "title": {
+        "en": "Current Weather Code (WMO)",
+        "de": "Aktueller Wettercode (WMO)"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "icon": "/assets/icons/measure_weathercode.svg"
+    },
     "measure_wind_direction_dominant": {
       "type": "number",
       "label": {
@@ -1197,22 +1339,6 @@
         "de": "km/h"
       },
       "icon": "/assets/icons/measure_windspeed.svg"
-    },
-    "mesaure_weathercode": {
-      "type": "number",
-      "label": {
-        "en": "Current Weather Code (WMO)",
-        "de": "Aktueller Wettercode (WMO)"
-      },
-      "title": {
-        "en": "Current Weather Code (WMO)",
-        "de": "Aktueller Wettercode (WMO)"
-      },
-      "uiComponent": "sensor",
-      "getable": true,
-      "setable": false,
-      "insights": true,
-      "icon": "/assets/icons/measure_weathercode.svg"
     },
     "sunrise": {
       "type": "string",
